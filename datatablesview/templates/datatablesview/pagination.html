@@ -1,0 +1,24 @@
+{% load datatablesview_widget %}
+<nav aria-label="Page navigation">
+        <ul class="pagination pagination-md justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+                <a class="page-link" href="?{{'1'|render_page_query_string:request.GET}}"><< </a>
+        </li>
+        <li class="page-item">
+                <a class="page-link" href="?{{page_obj.previous_page_number|render_page_query_string:request.GET}}">< </a>
+        </li>
+        {% endif %}
+
+        {% for i in paginator.page_range %}
+                <li {% if page_obj.number == i %} class="page-item active" {% else %} class="page-item" {% endif %}>
+                <a class="page-link" href="?{{i|render_page_query_string:request.GET}}">{{i}}</a>
+                </li>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?{{ page_obj.next_page_number|render_page_query_string:request.GET }}">></a></li>
+        <li class="page-item"><a class="page-link" href="?{{ page_obj.paginator.num_pages|render_page_query_string:request.GET }}">>></a></li>
+        {% endif %}
+        </ul>
+</nav>
