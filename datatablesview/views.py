@@ -1,15 +1,18 @@
 from django.shortcuts import render, redirect
 from decimal import Decimal, ROUND_HALF_UP
-from datetime import date, datetime, timedelta
-from dateutil.relativedelta import relativedelta
-from calendar import monthrange
-from django.utils import timezone
+from datetime import datetime
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
 from django.views import View
 from datatablesview.forms import DataTablesFilterForm
+from datatablesview.util import get_filter_dates
 from copy import copy
 import pdb
+
+FAST_FILTER_CHOICES = [('today','Hoje'), ('yesterday','Ontem'), ('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
+FAST_FILTER_CHOICES_MONTH = [('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
+FAST_FILTER_CHOICES_FUTURE = [('today','Hoje'), ('tomorrow','Amanhã'), ('yesterday','Ontem'), ('current_month','Este mês'), ('next_month','Próximo mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
+FAST_FILTER_CHOICES_ALL = [('today','Hoje'), ('yesterday','Ontem'), ('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás'), ('full_period','Todo o período')]
 
 
 class DataTablesView(View):
@@ -163,40 +166,4 @@ class DataTablesView(View):
         return initial
 
 
-def get_filter_dates():
-    now = timezone.now()
-    today = date.today()
 
-    first_day_current_month = date.today().replace(day=1)
-    last_day_current_month = get_last_day_of_month(now)
-
-    first_day_next_month = first_day_current_month + relativedelta(months=1)
-    last_day_next_month = get_last_day_of_month(first_day_next_month)
-
-    last_day_last_month = date(now.year, now.month, 1) - timedelta(1)
-    first_day_last_month = last_day_last_month.replace(day=1)
-
-    last_30_days = date.today() - timedelta(days=30)
-    last_60_days = date.today() - timedelta(days=60)
-    last_90_days = date.today() - timedelta(days=90)
-    last_180_days = date.today() - timedelta(days=180)
-    last_365_days = date.today() - timedelta(days=365)
-
-    first_day_platform = datetime.strptime('2018-02-01', '%Y-%m-%d')
-
-    dates = {}
-    dates['current_month'] = {'start': first_day_current_month, 'end': last_day_current_month}
-    dates['next_month'] = {'start': first_day_next_month, 'end': last_day_next_month}
-    dates['last_month'] = {'start': first_day_last_month, 'end': last_day_last_month}
-    dates['full_period'] = {'start': first_day_platform, 'end': today}
-    dates['last_30_days'] = {'start': last_30_days, 'end': today}
-    dates['last_60_days'] = {'start': last_60_days, 'end': today}
-    dates['last_90_days'] = {'start': last_90_days, 'end': today}
-    dates['last_180_days'] = {'start': last_180_days, 'end': today}
-    dates['last_365_days'] = {'start': last_365_days, 'end': today}
-
-    return dates
-
-
-def get_last_day_of_month(date_value):
-    return date_value.replace(day=monthrange(date_value.year, date_value.month)[1])

@@ -1,6 +1,7 @@
 from django import forms
 from copy import copy
 from dal import autocomplete
+from datatablesview.util import get_filter_dates
 import pdb
 
 
@@ -44,6 +45,11 @@ class DataTablesFilterForm(forms.Form):
                 self.fields[start_name] = fieldClass(label=label_start, widget=widget, required=required, **params)
                 self.fields[end_name] = fieldClass(label=label_end, widget=widget, required=required, **params)
 
+                if filter.get('fast_filter'):
+                    fast_filter_name = f"{filter['field']}_fast_filter"
+                    attrs_fast_filter = {'fast_filter_list':filter.get('fast_filter'), 'field_name':filter['field']}
+                    self.fields[fast_filter_name] = forms.CharField(label='', widget=DateFastFilterInput(attrs=attrs_fast_filter), required=False, **params)
+
             elif filter['type'] == 'date':
                 fieldClass = forms.DateField
                 attrs.update({'type': 'date'})
@@ -54,3 +60,20 @@ class DataTablesFilterForm(forms.Form):
                 fieldClass = forms.CharField
                 widget = forms.TextInput(attrs=attrs)
                 self.fields[filter['field']] = fieldClass(label=label, widget=widget, required=required, **params)
+
+
+class DateFastFilterInput(forms.widgets.Input):
+    input_type = 'text'
+    template_name = 'datatablesview/date_fast_filter_widget.html'
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)        
+        context['filter_dates'] = get_filter_dates()   
+        dropdown_list = []  
+
+        for filter in context['widget']['attrs']['fast_filter_list']:
+            filter_date = context['filter_dates'][filter[0]]
+            dropdown_list.append({'filter':filter, 'label':filter[1], 'start':filter_date['start'], 'end':filter_date['end']})
+        
+        context['dropdown_list'] = dropdown_list
+        return context    

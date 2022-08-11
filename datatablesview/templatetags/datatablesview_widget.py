@@ -14,6 +14,14 @@ def render_column_value(obj, column):
     if column.get('type') == 'pct':
         value = formats.localize(obj.get(column.get('field')))
         return f"{value}%"
+    if column.get('type') == 'date':
+        return obj.get(column.get('field')).strftime("%d/%m/%y")
+    if column.get('type') == 'datetime':
+        return obj.get(column.get('field')).strftime("%d/%m/%y %H:%M")        
+    if column.get('type') == 'choices':
+        value = obj.get(column.get('field'))        
+        return column.get('choices').get(value)
+
     return obj.get(column.get('field'))
 
 

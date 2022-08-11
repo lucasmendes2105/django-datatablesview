@@ -116,6 +116,12 @@
 
         $('#formFilter').submit();
     }
+
+    function dateFastFilter(field_name, start, end){
+        $('#id_'+field_name+'_start').val(start);
+        $('#id_'+field_name+'_end').val(end);
+        $('#formFilter').submit();
+    }
 </script>
 
 <script type="text/javascript" src="{% static 'admin/js/vendor/select2/select2.full.js' %}"></script>

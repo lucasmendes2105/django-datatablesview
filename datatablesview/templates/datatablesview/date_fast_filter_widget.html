@@ -1,0 +1,10 @@
+<div class="dropdown mr-2">
+    <button class="btn btn-light dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+        <i class="fa-solid fa-calendar-days"></i>
+    </button>
+    <div class="dropdown-menu">
+        {% for item in dropdown_list %}
+            <a class="dropdown-item" href="javascript:void();" onclick="dateFastFilter('{{widget.attrs.field_name}}','{{item.start|date:"Y-m-d"}}','{{item.end|date:"Y-m-d"}}')">{{item.label}}</a>
+        {% endfor %}
+    </div>
+</div>
