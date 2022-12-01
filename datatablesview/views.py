@@ -35,6 +35,14 @@ class DataTablesView(View):
         order_by = self.get_order_params(request)
         return self.get_queryset(request, filter_params, order_by)
 
+    def get_not_ordering(self):
+        if self.not_ordering and self.not_ordering == '__all__':
+            return [column['field'] for column in self.columns]
+        return self.not_ordering
+
+    def get_extra_context(self, request, result_list, paginator):
+        return {}
+
     def get(self, request):
         data_form = self.get_filter_data_form(request)
         filter_form = DataTablesFilterForm(filters=self.filters, initial=self.get_initial_values(), data=data_form)
@@ -49,20 +57,27 @@ class DataTablesView(View):
         footer_totals = self.get_footer_totals(page_obj, total_entries)
         order_by = request.GET.get('o-b-y', '')
 
+        extra_context = self.get_extra_context(request, result_list, paginator)
+
         context_data = {
             'page_obj': page_obj, 'paginator': paginator, 'title': self.title, 'columns': self.columns, 'filters': self.filters,
             'page_length': self.page_length, 'total_entries': total_entries, 'searching': self.searching, 'bold_columns': self.get_bold_columns(),
             'filter_form': filter_form, 'footer_totals': footer_totals, 'include_header_partial': self.include_header_partial, 'o': order_by,
-            'not_ordering': self.not_ordering
+            'not_ordering': self.get_not_ordering(), 'extra_context': extra_context
         }
 
         return render(request, self.template_name, context_data)
+
+    def has_view_permission(self, request):
+        if self.permission_name is not None and not request.user.has_perm(self.permission_name):
+            raise PermissionDenied        
+        return True
 
     def dispatch(self, *args, **kwargs):
         if self.login_required and not self.request.user.is_authenticated:
             return redirect('admin:index')
 
-        if self.permission_name is not None and not self.request.user.has_perm(self.permission_name):
+        if not self.has_view_permission(self.request):
             raise PermissionDenied
 
         return super().dispatch(*args, **kwargs)

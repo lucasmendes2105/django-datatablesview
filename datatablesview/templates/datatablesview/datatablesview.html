@@ -33,7 +33,7 @@
                     <thead>
                         <tr>
                             {% for column in columns %}
-                            <th{% if column.class %} class="{{column.class}}"{%endif%}{% if column.title %} title="{{column.title}}"{% endif %}>
+                            <th{% if column.class %} class="{{column.class}}"{%endif%}{% if column.title %} title="{{column.title}}"{% endif %} {% if column.width %} width="{{column.width}}"{%endif%}>
                                 {% if column.field in not_ordering %}{{column.name}}{% else %}<a href="javascript:void();" onclick="order('{{forloop.counter0}}')">{{column.name}}</a>{% endif %}
                             </th>
                             {% endfor %}
