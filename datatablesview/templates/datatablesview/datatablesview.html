@@ -22,6 +22,9 @@
             <hr>
             <form id="formFilter" action="" method="GET" class="form-inline mb-3">
                 <input type="hidden" name="o-b-y" id="id_o" value="{{o}}">
+                {% if is_popup %}
+                <input type="hidden" name="embed" value="True">
+                {% endif %}
                 {{filter_form}}
                 <input type="submit" class="btn btn-warning ml-3" value="Filtrar"></input>
             </form>

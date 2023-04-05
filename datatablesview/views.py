@@ -9,10 +9,10 @@ from datatablesview.util import get_filter_dates
 from copy import copy
 import pdb
 
-FAST_FILTER_CHOICES = [('today','Hoje'), ('yesterday','Ontem'), ('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
-FAST_FILTER_CHOICES_MONTH = [('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
-FAST_FILTER_CHOICES_FUTURE = [('today','Hoje'), ('tomorrow','Amanhã'), ('yesterday','Ontem'), ('current_month','Este mês'), ('next_month','Próximo mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás')]
-FAST_FILTER_CHOICES_ALL = [('today','Hoje'), ('yesterday','Ontem'), ('current_month','Este mês'), ('last_month','Mês passado'), ('last_60_days','60 dias atrás'), ('last_90_days','3 meses atrás'), ('last_180_days','6 meses atrás'), ('last_365_days','1 ano atrás'), ('full_period','Todo o período')]
+FAST_FILTER_CHOICES = [('today', 'Hoje'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
+FAST_FILTER_CHOICES_MONTH = [('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
+FAST_FILTER_CHOICES_FUTURE = [('today', 'Hoje'), ('tomorrow', 'Amanhã'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('next_month', 'Próximo mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
+FAST_FILTER_CHOICES_ALL = [('today', 'Hoje'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás'), ('full_period', 'Todo o período')]
 
 
 class DataTablesView(View):
@@ -44,6 +44,9 @@ class DataTablesView(View):
         return {}
 
     def get(self, request):
+        embed = request.GET.get('embed')
+        is_popup = True if embed == "True" else False
+
         data_form = self.get_filter_data_form(request)
         filter_form = DataTablesFilterForm(filters=self.filters, initial=self.get_initial_values(), data=data_form)
 
@@ -63,14 +66,14 @@ class DataTablesView(View):
             'page_obj': page_obj, 'paginator': paginator, 'title': self.title, 'columns': self.columns, 'filters': self.filters,
             'page_length': self.page_length, 'total_entries': total_entries, 'searching': self.searching, 'bold_columns': self.get_bold_columns(),
             'filter_form': filter_form, 'footer_totals': footer_totals, 'include_header_partial': self.include_header_partial, 'o': order_by,
-            'not_ordering': self.get_not_ordering(), 'extra_context': extra_context
+            'not_ordering': self.get_not_ordering(), 'extra_context': extra_context, 'is_popup': is_popup
         }
 
         return render(request, self.template_name, context_data)
 
     def has_view_permission(self, request):
         if self.permission_name is not None and not request.user.has_perm(self.permission_name):
-            raise PermissionDenied        
+            raise PermissionDenied
         return True
 
     def dispatch(self, *args, **kwargs):
@@ -179,6 +182,3 @@ class DataTablesView(View):
                 initial.update({filter['field']: filter.get('initial')})
 
         return initial
-
-
-
