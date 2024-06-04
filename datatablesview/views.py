@@ -11,6 +11,7 @@ import pdb
 
 FAST_FILTER_CHOICES = [('today', 'Hoje'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
 FAST_FILTER_CHOICES_MONTH = [('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
+FAST_FILTER_CHOICES_MONTH_FUTURE = [('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('next_month', 'Próximo mês'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('next_60_days', 'Próximos 60 dias'), ('next_90_days', 'Próximos 90 dias')]
 FAST_FILTER_CHOICES_FUTURE = [('today', 'Hoje'), ('tomorrow', 'Amanhã'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('next_month', 'Próximo mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás')]
 FAST_FILTER_CHOICES_ALL = [('today', 'Hoje'), ('yesterday', 'Ontem'), ('current_month', 'Este mês'), ('last_month', 'Mês passado'), ('last_60_days', '60 dias atrás'), ('last_90_days', '3 meses atrás'), ('last_180_days', '6 meses atrás'), ('last_365_days', '1 ano atrás'), ('full_period', 'Todo o período')]
 
@@ -35,6 +36,9 @@ class DataTablesView(View):
         order_by = self.get_order_params(request)
         return self.get_queryset(request, filter_params, order_by)
 
+    def dehydrate(self, request, page_obj):
+        return page_obj
+
     def get_not_ordering(self):
         if self.not_ordering and self.not_ordering == '__all__':
             return [column['field'] for column in self.columns]
@@ -55,7 +59,14 @@ class DataTablesView(View):
         paginator = Paginator(result_list, self.page_length)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
+        page_obj = self.dehydrate(request, page_obj)
         total_entries = paginator.count
+
+        index = page_obj.number - 1
+        max_index = len(paginator.page_range)
+        start_index = index - 3 if index >= 3 else 0
+        end_index = index + 3 if index <= max_index - 4 else max_index
+        page_range = list(paginator.page_range)[start_index:end_index]
 
         footer_totals = self.get_footer_totals(page_obj, total_entries)
         order_by = request.GET.get('o-b-y', '')
@@ -63,7 +74,7 @@ class DataTablesView(View):
         extra_context = self.get_extra_context(request, result_list, paginator)
 
         context_data = {
-            'page_obj': page_obj, 'paginator': paginator, 'title': self.title, 'columns': self.columns, 'filters': self.filters,
+            'page_obj': page_obj, 'paginator': paginator, 'page_range': page_range, 'title': self.title, 'columns': self.columns, 'filters': self.filters,
             'page_length': self.page_length, 'total_entries': total_entries, 'searching': self.searching, 'bold_columns': self.get_bold_columns(),
             'filter_form': filter_form, 'footer_totals': footer_totals, 'include_header_partial': self.include_header_partial, 'o': order_by,
             'not_ordering': self.get_not_ordering(), 'extra_context': extra_context, 'is_popup': is_popup
@@ -140,10 +151,14 @@ class DataTablesView(View):
                     end_date = datetime.strptime(request.GET.get(field_name_end), '%Y-%m-%d')
 
                 except Exception:
-                    start_date = filter_dates[filter['initial']]['start']
-                    end_date = filter_dates[filter['initial']]['end']
+                    if 'initial' in filter:
+                        start_date = filter_dates[filter['initial']]['start']
+                        end_date = filter_dates[filter['initial']]['end']
+                    else:
+                        start_date, end_date = None, None
 
-                params.update({field_name_start: start_date, field_name_end: end_date})
+                if start_date and end_date:
+                    params.update({field_name_start: start_date, field_name_end: end_date})
 
             else:
                 params.update({filter['field']: request.GET.get(filter['field'])})

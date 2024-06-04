@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 from calendar import monthrange
 from django.utils import timezone
 
+
 def get_filter_dates():
     now = timezone.now()
     today = date.today()
@@ -24,6 +25,9 @@ def get_filter_dates():
     last_180_days = date.today() - timedelta(days=180)
     last_365_days = date.today() - timedelta(days=365)
 
+    next_60_days = date.today() + timedelta(days=60)
+    next_90_days = date.today() + timedelta(days=90)
+
     first_day_platform = datetime.strptime('2018-02-01', '%Y-%m-%d')
 
     dates = {}
@@ -39,6 +43,8 @@ def get_filter_dates():
     dates['last_90_days'] = {'start': last_90_days, 'end': today}
     dates['last_180_days'] = {'start': last_180_days, 'end': today}
     dates['last_365_days'] = {'start': last_365_days, 'end': today}
+    dates['next_60_days'] = {'start': today, 'end': next_60_days}
+    dates['next_90_days'] = {'start': today, 'end': next_90_days}
 
     return dates
 
