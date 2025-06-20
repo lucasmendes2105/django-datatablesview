@@ -27,6 +27,8 @@ class DataTablesView(View):
     not_ordering = []
     page_length = 50
     searching = True
+    currency_code = 'BRL'
+    locale = 'pt_BR'
 
     def get_columns(self, request):
         return self.columns
@@ -73,11 +75,13 @@ class DataTablesView(View):
 
         extra_context = self.get_extra_context(request, result_list, paginator)
 
+        self.set_td_column_class()
+
         context_data = {
             'page_obj': page_obj, 'paginator': paginator, 'page_range': page_range, 'title': self.title, 'columns': self.columns, 'filters': self.filters,
-            'page_length': self.page_length, 'total_entries': total_entries, 'searching': self.searching, 'bold_columns': self.get_bold_columns(),
-            'filter_form': filter_form, 'footer_totals': footer_totals, 'include_header_partial': self.include_header_partial, 'o': order_by,
-            'not_ordering': self.get_not_ordering(), 'extra_context': extra_context, 'is_popup': is_popup
+            'page_length': self.page_length, 'total_entries': total_entries, 'searching': self.searching, 'required_filters': self.get_required_filters(),
+            'filter_form': filter_form, 'footer_totals': footer_totals, 'include_header_partial': self.include_header_partial, 'sort_col': self.get_sort_col(),
+            'o': order_by, 'not_ordering': self.get_not_ordering(), 'extra_context': extra_context, 'is_popup': is_popup, 'currency_code': self.currency_code, 'locale': self.locale
         }
 
         return render(request, self.template_name, context_data)
@@ -96,15 +100,40 @@ class DataTablesView(View):
 
         return super().dispatch(*args, **kwargs)
 
-    def get_bold_columns(self):
-        targets = []
-        key = int(1)
-        for column in self.columns:
-            if column.get('bold_col') == True:
-                targets.append(f'{key}')
-            key += 1
+    def get_required_filters(self):
+        fields = []
+        for filter in self.filters:
+            if filter.get('required') == True:
+                fields.append(filter['field'])
 
-        return targets
+        return fields
+
+    def set_td_column_class(self):
+        for column in self.columns:
+            td_class = []
+            if column.get('type') == 'money':
+                td_class.append("text-nowrap")
+
+            if column.get('bold_col') == True:
+                td_class.append("fw-bold")
+
+            column['td_class'] = " ".join(td_class)
+
+    def get_sort_col(self):
+        sort_param = self.request.GET.get('o-b-y')
+        sort_desc = False
+        current_sort_col = None
+
+        if sort_param:
+            try:
+                sort_col = int(sort_param)
+                sort_desc = sort_col < 0
+                current_sort_col = abs(sort_col)
+            except ValueError:
+                pass
+
+        return {"current_sort_col":current_sort_col, "sort_desc":sort_desc}
+
 
     def get_footer_totals(self, page_obj, total_entries):
         totals = []
@@ -143,7 +172,17 @@ class DataTablesView(View):
         filter_dates = get_filter_dates()
 
         for filter in self.filters:
-            if filter['type'] == 'date_range':
+            if filter['type'] == 'date_range_picker':
+                period = request.GET.get(filter['field'])
+
+                if period in [None, ''] and 'initial' in filter:
+                    start_date = filter_dates[filter['initial']]['start'].strftime("%d/%m/%Y")
+                    end_date = filter_dates[filter['initial']]['end'].strftime("%d/%m/%Y")
+                    period = "{} - {}".format(start_date, end_date)
+
+                params.update({filter['field']: period})
+
+            elif filter['type'] == 'date_range':
                 try:
                     field_name_start = f"{filter['field']}_start"
                     field_name_end = f"{filter['field']}_end"
@@ -186,7 +225,13 @@ class DataTablesView(View):
         filter_dates = get_filter_dates()
 
         for filter in self.filters:
-            if filter['type'] == 'date_range' and filter.get('initial') is not None:
+            if filter['type'] == 'date_range_picker' and filter.get('initial') is not None:
+                start_date = filter_dates[filter['initial']]['start'].strftime("%d/%m/%Y")
+                end_date = filter_dates[filter['initial']]['end'].strftime("%d/%m/%Y")
+                period = "{} - {}".format(start_date, end_date)
+                initial.update({filter['field']: period})
+
+            elif filter['type'] == 'date_range' and filter.get('initial') is not None:
                 field_name_start = f"{filter['field']}_start"
                 field_name_end = f"{filter['field']}_end"
                 start_date = filter_dates[filter['initial']]['start'].strftime("%Y-%m-%d")

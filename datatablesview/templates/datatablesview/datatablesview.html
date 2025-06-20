@@ -1,129 +1,267 @@
 {% extends "admin/base_site.html" %}
 {% load static l10n datatablesview_widget %}
 
-{% block title %}{{title}} | {{current_site.name}}{% endblock %}
-
-{% block content_title %}
-{% endblock %}
+{% block container-breakpoint %}saas container-lg{% endblock %}
 
 {% block extrahead %}
 {{block.super}}
 <link href="{% static 'admin/css/vendor/select2/select2.css' %}" type="text/css" media="all" rel="stylesheet" />
 <link href="{% static 'autocomplete_light/select2.css' %}" type="text/css" media="all" rel="stylesheet" />
+{% endblock %}
 
+{% block afterjquery %}
+{{block.super}}
+<script type="text/javascript" src="{% static 'js/momentjs/moment.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/momentjs/moment-with-locales.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/daterangepicker/daterangepicker.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/admin/admin_date_range_picker_filter.js' %}"></script>
+<link rel="stylesheet" href="{% static 'js/daterangepicker/daterangepicker.css' %}" />
+{% endblock %}
+
+{% block object-tools %}
+<div class="col-lg-6 mb-4 mb-lg-0">
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end align-items-center">
+        {% block object-tools-items %}
+        {% if include_header_partial %}{% include include_header_partial %}{% endif %}
+        {% endblock %}
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
-<div class="iso-bootstrap">
-    <div class="row">
-        <div class="col-md-12">
-            {% if include_header_partial %}{% include include_header_partial %}{% endif %}
-            <h4>{{title}}</h4>
-            <hr>
-            <form id="formFilter" action="" method="GET" class="form-inline mb-3">
-                <input type="hidden" name="o-b-y" id="id_o" value="{{o}}">
-                {% if is_popup %}
-                <input type="hidden" name="embed" value="True">
-                {% endif %}
-                {{filter_form}}
-                <input type="submit" class="btn btn-warning ml-3" value="Filtrar"></input>
-            </form>
-        </div>
 
-        <div class="col-md-12">
-            <div class="table-responsive">
-                <table class="table table-striped" id="tableReport">
-                    <thead>
-                        <tr>
-                            {% for column in columns %}
-                            <th{% if column.class %} class="{{column.class}}"{%endif%}{% if column.title %} title="{{column.title}}"{% endif %} {% if column.width %} width="{{column.width}}"{%endif%}>
-                                {% if column.field in not_ordering %}{{column.name}}{% else %}<a href="javascript:void();" onclick="order('{{forloop.counter0}}')">{{column.name}}</a>{% endif %}
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tfoot>
-                        <tr>
-                            {% for column in columns %}
-                            <th>
-                                {% for total in footer_totals %}
-                                {% if column.field == total.field%}
-                                {{total.total|print_value_column:column}}
-                                {% endif %}
-                                {% endfor %}
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </tfoot>
-                    <tbody>
-                        {% for obj in page_obj %}
-                        <tr>
-                            {% for column in columns %}
-                            <td>{{obj|render_column_value:column}}</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+{% if filters %}
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="filterModalLabel">Filtros</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFilter" action="" method="GET">
+                    <input type="hidden" name="o-b-y" id="id_o" value="{{o}}">
+                    {% if is_popup %}
+                    <input type="hidden" name="embed" value="True">
+                    {% endif %}
+
+                    {{filter_form}}
+                    <button type="submit" style="display: none;"></button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning me-auto" onclick="submitFormFilter();">Filtrar</button>
+                <button type="button" class="btn btn-outline-secondary" id="clearFiltersBtn">Limpar filtros</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
+</div>
+{% endif %}
 
-    <div class="row">
-        <div class="col-md-12">
-            Total de registros: {{total_entries}}
+<div id="content-main" class="card-saas">
+    <div class="changelist-card-body">
+        {% if filters %}
+        <div class="row">
+            <div class="col-auto">
+                <button type="button" class="btn btn-warning btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#filterModal">
+                    <i class="fa-solid fa-filter me-1"></i> Filtros
+                </button>
+            </div>
+            <div class="col">
+                <div id="filterBadgesContainer" class="mb-3"></div>
+            </div>
         </div>
-        <div class="col-md-12">
-            {% include 'datatablesview/pagination.html' %}
+        {% endif %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tableReport">
+                        <thead class="table-custom-thead">
+                            <tr>
+                                {% for column in columns %}
+                                <th class="text-nowrap" {% if column.title %} title="{{column.title}}" {% endif %} {% if column.width %} width="{{column.width}}" {%endif%}>
+                                    {% if column.field in not_ordering %}{{column.name}}{% else %}
+                                    <a href="javascript:void();" onclick="order('{{forloop.counter0}}')">
+                                        {{column.name}}
+                                        {% if sort_col.current_sort_col == forloop.counter0 %}
+                                        {% if sort_col.sort_desc %}
+                                        <i class="fas fa-sort-down ms-1"></i>
+                                        {% else %}
+                                        <i class="fas fa-sort-up ms-1"></i>
+                                        {% endif %}
+                                        {% else %}
+                                        <i class="fas fa-sort ms-1 text-secondary"></i>
+                                        {% endif %}
+                                    </a>{% endif %}
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                {% for column in columns %}
+                                <th>
+                                    {% for total in footer_totals %}
+                                    {% if column.field == total.field%}
+                                    {% print_value_column total.total column currency_code locale %}
+                                    {% endif %}
+                                    {% endfor %}
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </tfoot>
+                        <tbody>
+                            {% for obj in page_obj %}
+                            <tr>
+                                {% for column in columns %}
+                                <td {% if column.td_class %} class="{{column.td_class}}" {% endif %}>{% render_column_value obj column currency_code locale %}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12 mt-2 text-center">
+                Total de registros: {{total_entries}}
+            </div>
+            <div class="col-md-12">
+                {% include 'datatablesview/pagination.html' %}
+            </div>
         </div>
     </div>
-
 </div>
-
 {% endblock %}
 
 
 {% block extrajs %}
 {{block.super}}
 <style>
-    ul > li {
-        list-style-type: none !important;
+    .select2-container--open {
+        z-index: 9999 !important;
     }
 
-    .form-inline input, .form-inline select{
-        margin-left: 10px;
-        margin-right: 10px;
+    .select2.select2-container.select2-container--default {
+        width: 100% !important;
+        min-width: auto !important;
     }
-
-    .select2-container {
-        margin-left: 10px;
-        margin-right: 10px;
-    }
-
-    {% for key in bold_columns %}
-    #tableReport td:nth-child({{key}}){
-        font-weight: bold;
-    }
-    {% endfor %}
-
-
 </style>
 
+{{ required_filters|json_script:"required-filters" }}
+
 <script>
-    function order(o){
-        if(window.location.search.indexOf("o-b-y="+o) == 1){
-            $('#id_o').val('-'+o);
-        } else {
+    $(document).ready(function () {
+        $('#formFilter div').addClass('mb-2');
+
+        const requiredFilters = JSON.parse(document.getElementById("required-filters").textContent);
+        requiredFilters.forEach(function (fieldName) {
+            $('label[for="id_' + fieldName + '"]').addClass('required');
+        });
+
+        function generateFilterBadges(modalSelector, badgeContainerSelector) {
+            const $modal = $(modalSelector);
+            const $container = $(badgeContainerSelector);
+            $container.empty(); // limpa badges anteriores
+
+            $modal.find('input, select, textarea').each(function () {
+                const $field = $(this);
+                const value = $field.val();
+
+                if (value && value !== '' && value !== null) {
+                    const fieldId = $field.attr('id');
+                    let labelText = '';
+
+                    if (fieldId) {
+                        const $label = $(`label[for="${fieldId}"]`);
+                        if ($label.length) {
+                            labelText = $label.text().trim();
+                        }
+                    }
+
+                    // Pega o texto legível se for um select
+                    let displayValue = value;
+                    if ($field.is('select')) {
+                        displayValue = $field.find('option:selected').text().trim();
+                    }
+
+                    if (labelText && displayValue) {
+                        const $badge = $(`
+                                    <span class="badge bg-primary me-2 mb-2 d-inline-flex align-items-center">
+                                        ${labelText} ${displayValue}
+                                        <button type="button" class="badge-filter-close btn-close btn-close-white ms-2" aria-label="Remover filtro" data-target-id="${fieldId}"></button>
+                                    </span>
+                                `);
+                        $container.append($badge);
+                    }
+                }
+            });
+        }
+
+        $(document).on('click', '.badge-filter-close', function () {
+            const targetId = $(this).data('target-id');
+            const $field = $('#' + targetId);
+
+            if ($field.length) {
+                if ($field.is('select')) {
+                    $field.val('').trigger('change');
+                } else {
+                    $field.val('');
+                }
+
+                // Submete o formulário após limpar o campo
+                $('#formFilter').submit();
+            }
+        });
+
+
+        // Executa ao carregar a página
+        generateFilterBadges('#filterModal', '#filterBadgesContainer');
+
+        $('#clearFiltersBtn').on('click', function () {
+            const $form = $('#formFilter');
+
+            $form.find('input, select, textarea').each(function () {
+                const $field = $(this);
+
+                if ($field.is('select')) {
+                    $field.val('').trigger('change'); // limpa select e atualiza select2
+                } else {
+                    $field.val('');
+                }
+            });
+
+            $form.submit();
+        });
+    });
+
+
+    function order(o) {
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentOrder = searchParams.get("o-b-y");
+
+        if (currentOrder === '-' + o) {
             $('#id_o').val(o);
+        } else {
+            $('#id_o').val('-' + o);
         }
 
         $('#formFilter').submit();
     }
 
-    function dateFastFilter(field_name, start, end){
-        $('#id_'+field_name+'_start').val(start);
-        $('#id_'+field_name+'_end').val(end);
+    function dateFastFilter(field_name, start, end) {
+        $('#id_' + field_name + '_start').val(start);
+        $('#id_' + field_name + '_end').val(end);
         $('#formFilter').submit();
+    }
+
+    function submitFormFilter() {
+        if (document.getElementById('formFilter').reportValidity()) {
+            $('#formFilter').submit();
+        }
     }
 </script>
 

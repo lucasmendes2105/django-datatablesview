@@ -16,14 +16,16 @@ class DataTablesFilterForm(forms.Form):
     def create_fields(self):
         for filter in self.filters:
 
-            attrs = {'class': 'form-control'}
+            attrs = {'class': 'form-control form-control-sm'}
             label = filter['title']
             required = filter.get('required', False)
+            if required:
+                attrs['class'] += " required"
             params = {}
 
             if filter['type'] == 'select':
                 fieldClass = forms.ChoiceField
-                widget = forms.Select(attrs=attrs)
+                widget = forms.Select(attrs={'class': 'form-select form-select-sm w-100'})
                 choices = copy(filter['choices'])
                 choices.insert(0, (None, 'Selecione'))
                 params['choices'] = choices
@@ -31,8 +33,14 @@ class DataTablesFilterForm(forms.Form):
 
             elif filter['type'] == 'autocomplete.ModelSelect2':
                 fieldClass = forms.ModelChoiceField
-                widget = autocomplete.ModelSelect2(url=filter['url'])
+                widget = autocomplete.ModelSelect2(url=filter['url'], attrs={'data-dropdown-parent':'#filterModal'})
                 self.fields[filter['field']] = fieldClass(label=label, queryset=filter['queryset'], widget=widget, required=required, **params)
+
+            elif filter['type'] == 'date_range_picker':
+                fieldClass = forms.CharField
+                attrs.update({'placeholder': 'Selecione um período', 'autocomplete':'off', 'class':'form-control form-control-sm date-range-picker-filter', 'data-range_list': filter.get('range_list'), 'data-apply_action': None})
+                widget = forms.TextInput(attrs=attrs)
+                self.fields[filter['field']] = fieldClass(label=label, widget=widget, required=required, **params)
 
             elif filter['type'] == 'date_range':
                 fieldClass = forms.DateField
@@ -67,13 +75,13 @@ class DateFastFilterInput(forms.widgets.Input):
     template_name = 'datatablesview/date_fast_filter_widget.html'
 
     def get_context(self, name, value, attrs):
-        context = super().get_context(name, value, attrs)        
-        context['filter_dates'] = get_filter_dates()   
-        dropdown_list = []  
+        context = super().get_context(name, value, attrs)
+        context['filter_dates'] = get_filter_dates()
+        dropdown_list = []
 
         for filter in context['widget']['attrs']['fast_filter_list']:
             filter_date = context['filter_dates'][filter[0]]
             dropdown_list.append({'filter':filter, 'label':filter[1], 'start':filter_date['start'], 'end':filter_date['end']})
-        
+
         context['dropdown_list'] = dropdown_list
-        return context    
+        return context

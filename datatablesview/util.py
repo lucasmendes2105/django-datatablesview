@@ -19,6 +19,8 @@ def get_filter_dates():
     last_day_last_month = date(now.year, now.month, 1) - timedelta(1)
     first_day_last_month = last_day_last_month.replace(day=1)
 
+    last_7_days = date.today() - timedelta(days=7)
+    last_14_days = date.today() - timedelta(days=14)
     last_30_days = date.today() - timedelta(days=30)
     last_60_days = date.today() - timedelta(days=60)
     last_90_days = date.today() - timedelta(days=90)
@@ -38,13 +40,15 @@ def get_filter_dates():
     dates['next_month'] = {'start': first_day_next_month, 'end': last_day_next_month}
     dates['last_month'] = {'start': first_day_last_month, 'end': last_day_last_month}
     dates['full_period'] = {'start': first_day_platform, 'end': today}
-    dates['last_30_days'] = {'start': last_30_days, 'end': today}
-    dates['last_60_days'] = {'start': last_60_days, 'end': today}
-    dates['last_90_days'] = {'start': last_90_days, 'end': today}
-    dates['last_180_days'] = {'start': last_180_days, 'end': today}
-    dates['last_365_days'] = {'start': last_365_days, 'end': today}
-    dates['next_60_days'] = {'start': today, 'end': next_60_days}
-    dates['next_90_days'] = {'start': today, 'end': next_90_days}
+    dates['last_7_days'] = {'start': last_7_days, 'end': yesterday}
+    dates['last_14_days'] = {'start': last_14_days, 'end': yesterday}
+    dates['last_30_days'] = {'start': last_30_days, 'end': yesterday}
+    dates['last_60_days'] = {'start': last_60_days, 'end': yesterday}
+    dates['last_90_days'] = {'start': last_90_days, 'end': yesterday}
+    dates['last_180_days'] = {'start': last_180_days, 'end': yesterday}
+    dates['last_365_days'] = {'start': last_365_days, 'end': yesterday}
+    dates['next_60_days'] = {'start': tomorrow, 'end': next_60_days}
+    dates['next_90_days'] = {'start': tomorrow, 'end': next_90_days}
 
     return dates
 
